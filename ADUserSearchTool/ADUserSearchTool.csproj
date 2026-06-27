@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+	<ApplicationIcon>Assets\ad_benutzer_suche.ico</ApplicationIcon> 
+  </PropertyGroup>
+
+  <ItemGroup>
+	<None Remove="Assets\ad_benutzer_suche.ico" />  
+  </ItemGroup>
+
+	<ItemGroup>
+		<Resource Include="Assets\ad_benutzer_suche.ico">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+	</ItemGroup>
+	
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
+  </ItemGroup>
+
+</Project>
