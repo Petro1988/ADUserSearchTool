@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace ADUserSearchTool.Services
 {
-    public class ExcelExportService
+    public class ExcelExportService: IExcelExportService
     {
         public void ExportToExcel(string filePath, List<AdUserResult> users)
         {

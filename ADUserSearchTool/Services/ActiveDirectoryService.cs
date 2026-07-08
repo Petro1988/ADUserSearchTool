@@ -4,10 +4,14 @@ using System;
 using System.Collections.Generic;
 using System.DirectoryServices;
 using System.Linq;
+using System.Runtime.InteropServices;
+using ADUserSearchTool.Constants;
+using ADUserSearchTool.Exceptions;
 
 namespace ADUserSearchTool.Services
 {
-    public class ActiveDirectoryService
+
+    public class ActiveDirectoryService: IActiveDirectoryService
     {
         public List<AdUserResult> SearchUsers(string searchText, string statusFilter, string searchMode)
         {
@@ -18,6 +22,8 @@ namespace ADUserSearchTool.Services
 
             searcher.PageSize = 500;
             searcher.SizeLimit = 0;
+            searcher.ClientTimeout = TimeSpan.FromSeconds(30);
+            searcher.ServerTimeLimit = TimeSpan.FromSeconds(30);
 
             AddUserProperties(searcher);
 
@@ -30,7 +36,7 @@ namespace ADUserSearchTool.Services
                 if (!MatchesStatusFilter(user, statusFilter))
                     continue;
 
-                if (!MatchesSearchText(user, searchText, searchMode))
+                if (!AdSearchMatcher.Matches(user, searchText, searchMode))
                     continue;
 
                 results.Add(user);
@@ -45,13 +51,18 @@ namespace ADUserSearchTool.Services
         {
             List<AdUserResult> members = new List<AdUserResult>();
 
-            string safeGroupSearchText = AdHelper.EscapeLdapFilter(groupSearchText);
+            if (string.IsNullOrWhiteSpace(groupSearchText))
+                return members;
+
+            string safeGroupSearchText = AdHelper.EscapeLdapFilter(groupSearchText.Trim());
 
             using DirectoryEntry root = GetDefaultNamingContext();
             using DirectorySearcher groupSearcher = new DirectorySearcher(root);
 
             groupSearcher.PageSize = 500;
-            groupSearcher.SizeLimit = 1;
+            groupSearcher.SizeLimit = 50;
+            groupSearcher.ClientTimeout = TimeSpan.FromSeconds(30);
+            groupSearcher.ServerTimeLimit = TimeSpan.FromSeconds(30);
 
             groupSearcher.Filter =
                 "(&(objectCategory=group)" +
@@ -61,21 +72,52 @@ namespace ADUserSearchTool.Services
                 "))";
 
             groupSearcher.PropertiesToLoad.Add("cn");
+            groupSearcher.PropertiesToLoad.Add("sAMAccountName");
             groupSearcher.PropertiesToLoad.Add("distinguishedName");
             groupSearcher.PropertiesToLoad.Add("member");
 
-            SearchResult? groupResult = groupSearcher.FindOne();
+            SearchResultCollection foundGroups = groupSearcher.FindAll();
 
-            if (groupResult == null)
+            if (foundGroups == null || foundGroups.Count == 0)
                 return members;
 
-            if (!groupResult.Properties.Contains("member") ||
-                groupResult.Properties["member"].Count == 0)
+            SearchResult? selectedGroup = null;
+
+            foreach (SearchResult group in foundGroups)
+            {
+                string cn = GetProperty(group, "cn");
+                string sam = GetProperty(group, "sAMAccountName");
+
+                if (string.Equals(cn, groupSearchText, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(sam, groupSearchText, StringComparison.OrdinalIgnoreCase))
+                {
+                    selectedGroup = group;
+                    break;
+                }
+            }
+
+            if (selectedGroup == null)
+            {
+                foreach (SearchResult group in foundGroups)
+                {
+                    if (group.Properties.Contains("member") &&
+                        group.Properties["member"].Count > 0)
+                    {
+                        selectedGroup = group;
+                        break;
+                    }
+                }
+            }
+
+            selectedGroup ??= foundGroups[0];
+
+            if (!selectedGroup.Properties.Contains("member") ||
+                selectedGroup.Properties["member"].Count == 0)
             {
                 return members;
             }
 
-            foreach (object memberObject in groupResult.Properties["member"])
+            foreach (object memberObject in selectedGroup.Properties["member"])
             {
                 string memberDn = memberObject?.ToString() ?? "";
 
@@ -109,12 +151,41 @@ namespace ADUserSearchTool.Services
 
         private DirectoryEntry GetDefaultNamingContext()
         {
-            using DirectoryEntry rootDse = new DirectoryEntry("LDAP://RootDSE");
+            try
+            {
+                using DirectoryEntry rootDse = new DirectoryEntry("LDAP://RootDSE");
 
-            string defaultNamingContext =
-                rootDse.Properties["defaultNamingContext"][0]?.ToString() ?? "";
+                string defaultNamingContext =
+                    rootDse.Properties["defaultNamingContext"].Value?.ToString() ?? "";
 
-            return new DirectoryEntry("LDAP://" + defaultNamingContext);
+                if (string.IsNullOrWhiteSpace(defaultNamingContext))
+                {
+                    throw new InvalidOperationException("defaultNamingContext konnte nicht gelesen werden.");
+                }
+
+                return new DirectoryEntry("LDAP://" + defaultNamingContext);
+            }
+            catch (COMException ex)
+            {
+                throw new ActiveDirectoryUnavailableException(
+                    "Active Directory ist nicht erreichbar.\n\n" +
+                    "Bitte prüfen:\n" +
+                    "- Bist du im Firmennetzwerk oder per VPN verbunden?\n" +
+                    "- Ist die Domäne erreichbar?\n" +
+                    "- Funktioniert DNS/Netzwerk?\n\n" +
+                    "Technische Meldung:\n" + ex.Message,
+                    ex
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new ActiveDirectoryUnavailableException(
+                    "Active Directory konnte nicht initialisiert werden.\n\n" +
+                    "Bitte prüfen, ob du im Firmennetzwerk oder per VPN verbunden bist.\n\n" +
+                    "Technische Meldung:\n" + ex.Message,
+                    ex
+                );
+            }
         }
 
         private void AddUserProperties(DirectorySearcher searcher)
@@ -181,61 +252,13 @@ namespace ADUserSearchTool.Services
             };
         }
 
-        private bool MatchesSearchText(AdUserResult user, string searchText, string searchMode)
-        {
-            if (string.IsNullOrWhiteSpace(searchText))
-                return true;
-
-            string search = searchText.Trim();
-            string searchDigits = AdHelper.NormalizeNumber(searchText);
-
-            switch (searchMode)
-            {
-                case "Rufnummer":
-                    return MatchesPhone(user, searchDigits);
-
-                case "Logon Script":
-                    return AdHelper.ContainsIgnoreCase(user.LogonScript, search);
-
-                case "OU":
-                    return AdHelper.ContainsIgnoreCase(user.OU, search) ||
-                           AdHelper.ContainsIgnoreCase(user.DistinguishedName, search);
-
-                case "Alle":
-                default:
-                    bool textMatch =
-                        AdHelper.ContainsIgnoreCase(user.Name, search) ||
-                        AdHelper.ContainsIgnoreCase(user.Benutzername, search) ||
-                        AdHelper.ContainsIgnoreCase(user.Email, search) ||
-                        AdHelper.ContainsIgnoreCase(user.LogonScript, search) ||
-                        AdHelper.ContainsIgnoreCase(user.OU, search) ||
-                        AdHelper.ContainsIgnoreCase(user.DistinguishedName, search);
-
-                    bool phoneMatch = MatchesPhone(user, searchDigits);
-
-                    return textMatch || phoneMatch;
-            }
-        }
-
-        private bool MatchesPhone(AdUserResult user, string searchDigits)
-        {
-            if (string.IsNullOrWhiteSpace(searchDigits))
-                return false;
-
-            string telefonDigits = AdHelper.NormalizeNumber(user.Telefon);
-            string mobileDigits = AdHelper.NormalizeNumber(user.Mobile);
-
-            return telefonDigits.Contains(searchDigits) ||
-                   mobileDigits.Contains(searchDigits);
-        }
-
         private bool MatchesStatusFilter(AdUserResult user, string statusFilter)
         {
-            if (statusFilter == "Aktiv")
-                return user.Status == "Aktiv";
+            if (statusFilter == StatusFilters.Active)
+                return user.Status == StatusFilters.Active;
 
-            if (statusFilter == "Deaktiviert")
-                return user.Status == "Deaktiviert";
+            if (statusFilter == StatusFilters.Disabled)
+                return user.Status == StatusFilters.Disabled;
 
             return true;
         }

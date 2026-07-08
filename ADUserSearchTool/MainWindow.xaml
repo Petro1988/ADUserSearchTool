@@ -5,7 +5,8 @@
         Height="700"
         Width="1450"
         WindowStartupLocation="CenterScreen"
-        Icon="Assets/ad_benutzer_suche.ico">
+        Icon="Assets/ad_benutzer_suche.ico"
+        PreviewKeyDown="Window_PreviewKeyDown">
 
     <Window.Resources>
         <Style x:Key="SelectableCellTextBoxStyle" TargetType="TextBox">
@@ -34,82 +35,90 @@
                    Margin="0,0,0,16"/>
 
         <StackPanel Grid.Row="1"
-                    Orientation="Horizontal"
-                    Margin="0,0,0,12">
+            Orientation="Horizontal"
+            Margin="0,0,0,12">
 
             <TextBox x:Name="txtSearch"
-                     Width="420"
-                     Height="34"
-                     VerticalContentAlignment="Center"
-                     Margin="0,0,10,0"
-                     ToolTip="Suchbegriff eingeben. Leer = alle Benutzer."
-                     KeyDown="txtSearch_KeyDown"/>
+             Width="420"
+             Height="34"
+             VerticalContentAlignment="Center"
+             Margin="0,20,10,0"
+             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+             ToolTip="Suchbegriff eingeben. Leer = alle Benutzer."/>
 
-            <ComboBox x:Name="cmbSearchMode"
-                      Width="170"
-                      Height="34"
-                      Margin="0,0,10,0"
-                      SelectedIndex="0">
-                <ComboBoxItem Content="Alle"/>
-                <ComboBoxItem Content="Rufnummer"/>
-                <ComboBoxItem Content="Logon Script"/>
-                <ComboBoxItem Content="OU"/>
-                <ComboBoxItem Content="Gruppe"/>
-            </ComboBox>
+            <StackPanel Orientation="Vertical"
+                Margin="0,0,10,0">
+                <TextBlock Text="Suchkriterium"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,4"/>
 
-            <ComboBox x:Name="cmbStatus"
-                      Width="150"
-                      Height="34"
-                      Margin="0,0,10,0"
-                      SelectedIndex="0">
-                <ComboBoxItem Content="Alle"/>
-                <ComboBoxItem Content="Aktiv"/>
-                <ComboBoxItem Content="Deaktiviert"/>
-            </ComboBox>
+                <ComboBox x:Name="cmbSearchMode"
+                  Width="170"
+                  Height="34"
+                  ItemsSource="{Binding SearchModeItems}"
+                  SelectedItem="{Binding SelectedSearchMode, Mode=TwoWay}"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Vertical"
+                Margin="0,0,10,0">
+                <TextBlock Text="Aktiv / Deaktiv"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,4"/>
+
+                <ComboBox x:Name="cmbStatus"
+                  Width="150"
+                  Height="34"
+                  ItemsSource="{Binding StatusFilterItems}"
+                  SelectedItem="{Binding SelectedStatusFilter, Mode=TwoWay}"/>
+            </StackPanel>
 
             <Button x:Name="btnSearch"
-                    Content="Suchen"
-                    Width="100"
-                    Height="34"
-                    Margin="0,0,10,0"
-                    Click="btnSearch_Click"/>
+            Content="Suchen"
+            Width="100"
+            Height="34"
+            Margin="0,20,10,0"
+            Command="{Binding SearchCommand}"/>
 
             <Button x:Name="btnShowGroups"
-                    Content="Mitglied von"
-                    Width="120"
-                    Height="34"
-                    Margin="0,0,10,0"
-                    Click="btnShowGroups_Click"/>
+            Content="Mitglied von"
+            Width="120"
+            Height="34"
+            Margin="0,20,10,0"
+            Command="{Binding ShowGroupsCommand}"/>
 
             <Button x:Name="btnCopyRow"
-                    Content="Zeile kopieren"
-                    Width="120"
-                    Height="34"
-                    Margin="0,0,10,0"
-                    Click="btnCopyRow_Click"/>
+            Content="Zeile kopieren"
+            Width="120"
+            Height="34"
+            Margin="0,20,10,0"
+            Command="{Binding CopyRowCommand}"/>
 
             <Button x:Name="btnExport"
-                    Content="Export Excel"
-                    Width="120"
-                    Height="34"
-                    Margin="0,0,10,0"
-                    Click="btnExport_Click"/>
+            Content="Export Excel"
+            Width="120"
+            Height="34"
+            Margin="0,20,10,0"
+            Command="{Binding ExportCommand}"/>
 
             <Button x:Name="btnClear"
-                    Content="Leeren"
-                    Width="90"
-                    Height="34"
-                    Click="btnClear_Click"/>
+            Content="Leeren"
+            Width="90"
+            Height="34"
+            Margin="0,20,0,0"
+            Command="{Binding ClearCommand}"/>
+
         </StackPanel>
 
         <TextBlock x:Name="txtStatus"
                    Grid.Row="2"
-                   Text="Bereit."
+                   Text="{Binding StatusText}"
                    Foreground="Gray"
                    Margin="0,0,0,10"/>
 
         <DataGrid x:Name="dgResults"
                   Grid.Row="3"
+                  ItemsSource="{Binding Results}"
+                  SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
                   CanUserSortColumns="True"
