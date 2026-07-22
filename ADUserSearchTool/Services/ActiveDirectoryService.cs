@@ -200,9 +200,12 @@ namespace ADUserSearchTool.Services
                 "mobile",
                 "scriptPath",
                 "lastLogonTimestamp",
+                "pwdLastSet",
                 "memberOf",
                 "userAccountControl",
-                "distinguishedName"
+                "distinguishedName",
+                "homeDrive",
+                "homeDirectory"
             };
 
             foreach (string property in properties)
@@ -225,9 +228,14 @@ namespace ADUserSearchTool.Services
                 Mobile = GetProperty(result, "mobile"),
                 LogonScript = GetProperty(result, "scriptPath"),
                 LetzteAnmeldung = AdHelper.ConvertFileTimeToDate(GetProperty(result, "lastLogonTimestamp")),
+                LetztePasswortaenderung = AdHelper.ConvertFileTimeToDate(GetProperty(result, "pwdLastSet")),
                 MitgliedVon = GetMultiPropertyCn(result, "memberOf"),
                 Status = AdHelper.IsAccountDisabled(userAccountControl) ? "Deaktiviert" : "Aktiv",
+                Kontooptionen = BuildAccountOptions(userAccountControl),
                 OU = AdHelper.ExtractOu(distinguishedName),
+                VerbindenMit = BuildHomeDrive(
+                GetProperty(result, "homeDrive"),
+                GetProperty(result, "homeDirectory")),
                 DistinguishedName = distinguishedName
             };
         }
@@ -246,9 +254,14 @@ namespace ADUserSearchTool.Services
                 Mobile = GetEntryProperty(entry, "mobile"),
                 LogonScript = GetEntryProperty(entry, "scriptPath"),
                 LetzteAnmeldung = AdHelper.ConvertFileTimeToDate(GetEntryProperty(entry, "lastLogonTimestamp")),
+                LetztePasswortaenderung = AdHelper.ConvertFileTimeToDate(GetEntryProperty(entry, "pwdLastSet")),
                 MitgliedVon = GetEntryMultiPropertyCn(entry, "memberOf"),
                 Status = AdHelper.IsAccountDisabled(userAccountControl) ? "Deaktiviert" : "Aktiv",
+                Kontooptionen = BuildAccountOptions(userAccountControl),
                 OU = AdHelper.ExtractOu(distinguishedName),
+                VerbindenMit = BuildHomeDrive(
+                GetEntryProperty(entry, "homeDrive"),
+                GetEntryProperty(entry, "homeDirectory")),
                 DistinguishedName = distinguishedName
             };
         }
@@ -356,6 +369,69 @@ namespace ADUserSearchTool.Services
             }
 
             return string.Join("; ", values.OrderBy(x => x));
+        }
+
+        private string BuildHomeDrive(string homeDrive, string homeDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(homeDrive) &&
+                string.IsNullOrWhiteSpace(homeDirectory))
+            {
+                return "";
+            }
+
+            if (string.IsNullOrWhiteSpace(homeDrive))
+                return homeDirectory;
+
+            if (string.IsNullOrWhiteSpace(homeDirectory))
+                return homeDrive;
+
+            return $"{homeDrive} -> {homeDirectory}";
+        }
+
+        private string BuildAccountOptions(int userAccountControl)
+        {
+            List<string> options = new List<string>();
+
+            if ((userAccountControl & 2) == 2)
+                options.Add("Konto deaktiviert");
+
+            if ((userAccountControl & 16) == 16)
+                options.Add("Konto gesperrt");
+
+            if ((userAccountControl & 32) == 32)
+                options.Add("Kennwort nicht erforderlich");
+
+            if ((userAccountControl & 64) == 64)
+                options.Add("Kennwort kann nicht geändert werden");
+
+            if ((userAccountControl & 512) == 512)
+                options.Add("Normales Benutzerkonto");
+
+            if ((userAccountControl & 65536) == 65536)
+                options.Add("Kennwort läuft nie ab");
+
+            if ((userAccountControl & 262144) == 262144)
+                options.Add("Smartcard erforderlich");
+
+            if ((userAccountControl & 524288) == 524288)
+                options.Add("Für Delegierung vertraut");
+
+            if ((userAccountControl & 1048576) == 1048576)
+                options.Add("Nicht delegierbar");
+
+            if ((userAccountControl & 2097152) == 2097152)
+                options.Add("Nur DES verwenden");
+
+            if ((userAccountControl & 4194304) == 4194304)
+                options.Add("Keine Kerberos-Präauthentifizierung");
+
+            if ((userAccountControl & 8388608) == 8388608)
+                options.Add("Kennwort abgelaufen");
+
+            if (options.Count == 0)
+                return "";
+
+            return string.Join("; ", options);
         }
     }
 }

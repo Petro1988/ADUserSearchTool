@@ -35,77 +35,77 @@
                    Margin="0,0,0,16"/>
 
         <StackPanel Grid.Row="1"
-            Orientation="Horizontal"
-            Margin="0,0,0,12">
+                    Orientation="Horizontal"
+                    Margin="0,0,0,12">
 
             <TextBox x:Name="txtSearch"
-             Width="420"
-             Height="34"
-             VerticalContentAlignment="Center"
-             Margin="0,20,10,0"
-             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-             ToolTip="Suchbegriff eingeben. Leer = alle Benutzer."/>
+                     Width="420"
+                     Height="34"
+                     VerticalContentAlignment="Center"
+                     Margin="0,20,10,0"
+                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="Suchbegriff eingeben. Leer = alle Benutzer."/>
 
             <StackPanel Orientation="Vertical"
-                Margin="0,0,10,0">
+                        Margin="0,0,10,0">
                 <TextBlock Text="Suchkriterium"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,4"/>
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,4"/>
 
                 <ComboBox x:Name="cmbSearchMode"
-                  Width="170"
-                  Height="34"
-                  ItemsSource="{Binding SearchModeItems}"
-                  SelectedItem="{Binding SelectedSearchMode, Mode=TwoWay}"/>
+                          Width="170"
+                          Height="34"
+                          ItemsSource="{Binding SearchModeItems}"
+                          SelectedItem="{Binding SelectedSearchMode, Mode=TwoWay}"/>
             </StackPanel>
 
             <StackPanel Orientation="Vertical"
-                Margin="0,0,10,0">
+                        Margin="0,0,10,0">
                 <TextBlock Text="Aktiv / Deaktiv"
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,4"/>
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,4"/>
 
                 <ComboBox x:Name="cmbStatus"
-                  Width="150"
-                  Height="34"
-                  ItemsSource="{Binding StatusFilterItems}"
-                  SelectedItem="{Binding SelectedStatusFilter, Mode=TwoWay}"/>
+                          Width="150"
+                          Height="34"
+                          ItemsSource="{Binding StatusFilterItems}"
+                          SelectedItem="{Binding SelectedStatusFilter, Mode=TwoWay}"/>
             </StackPanel>
 
             <Button x:Name="btnSearch"
-            Content="Suchen"
-            Width="100"
-            Height="34"
-            Margin="0,20,10,0"
-            Command="{Binding SearchCommand}"/>
+                    Content="Suchen"
+                    Width="100"
+                    Height="34"
+                    Margin="0,20,10,0"
+                    Command="{Binding SearchCommand}"/>
 
             <Button x:Name="btnShowGroups"
-            Content="Mitglied von"
-            Width="120"
-            Height="34"
-            Margin="0,20,10,0"
-            Command="{Binding ShowGroupsCommand}"/>
+                    Content="Mitglied von"
+                    Width="120"
+                    Height="34"
+                    Margin="0,20,10,0"
+                    Command="{Binding ShowGroupsCommand}"/>
 
             <Button x:Name="btnCopyRow"
-            Content="Zeile kopieren"
-            Width="120"
-            Height="34"
-            Margin="0,20,10,0"
-            Command="{Binding CopyRowCommand}"/>
+                    Content="Zeile kopieren"
+                    Width="120"
+                    Height="34"
+                    Margin="0,20,10,0"
+                    Command="{Binding CopyRowCommand}"/>
 
             <Button x:Name="btnExport"
-            Content="Export Excel"
-            Width="120"
-            Height="34"
-            Margin="0,20,10,0"
-            Command="{Binding ExportCommand}"/>
+                    Content="Export Excel"
+                    Width="120"
+                    Height="34"
+                    Margin="0,20,10,0"
+                    Command="{Binding ExportCommand}"/>
 
             <Button x:Name="btnClear"
-            Content="Leeren"
-            Width="90"
-            Height="34"
-            Margin="0,20,0,0"
-            Command="{Binding ClearCommand}"/>
+                    Content="Leeren"
+                    Width="90"
+                    Height="34"
+                    Margin="0,20,0,0"
+                    Command="{Binding ClearCommand}"/>
 
         </StackPanel>
 
@@ -233,6 +233,18 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
+                <DataGridTemplateColumn Header="Letzte Passwortänderung"
+                                        Width="180"
+                                        SortMemberPath="LetztePasswortaenderung"
+                                        ClipboardContentBinding="{Binding LetztePasswortaenderung}">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBox Text="{Binding LetztePasswortaenderung}"
+                                     Style="{StaticResource SelectableCellTextBoxStyle}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <DataGridTemplateColumn Header="Mitglied von"
                                         Width="300"
                                         SortMemberPath="MitgliedVon"
@@ -257,6 +269,18 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
+                <DataGridTemplateColumn Header="Kontooptionen"
+                                        Width="260"
+                                        SortMemberPath="Kontooptionen"
+                                        ClipboardContentBinding="{Binding Kontooptionen}">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBox Text="{Binding Kontooptionen}"
+                                     Style="{StaticResource SelectableCellTextBoxStyle}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <DataGridTemplateColumn Header="OU"
                                         Width="260"
                                         SortMemberPath="OU"
@@ -264,6 +288,18 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBox Text="{Binding OU}"
+                                     Style="{StaticResource SelectableCellTextBoxStyle}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn Header="Verbinden mit"
+                                        Width="260"
+                                        SortMemberPath="VerbindenMit"
+                                        ClipboardContentBinding="{Binding VerbindenMit}">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBox Text="{Binding VerbindenMit}"
                                      Style="{StaticResource SelectableCellTextBoxStyle}"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>

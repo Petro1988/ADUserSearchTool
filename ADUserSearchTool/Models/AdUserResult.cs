@@ -9,9 +9,12 @@
         public string Mobile { get; set; } = "";
         public string LogonScript { get; set; } = "";
         public string LetzteAnmeldung { get; set; } = "";
+        public string LetztePasswortaenderung { get; set; } = "";
         public string MitgliedVon { get; set; } = "";
         public string Status { get; set; } = "";
+        public string Kontooptionen { get; set; } = "";
         public string OU { get; set; } = "";
+        public string VerbindenMit { get; set; } = "";
         public string DistinguishedName { get; set; } = "";
     }
 }

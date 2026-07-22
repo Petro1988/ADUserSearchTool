@@ -56,8 +56,11 @@ namespace ADUserSearchTool.ViewHelpers
             sb.AppendLine($"Mobile: {user.Mobile}");
             sb.AppendLine($"Logon Script: {user.LogonScript}");
             sb.AppendLine($"Letzte Anmeldung: {user.LetzteAnmeldung}");
+            sb.AppendLine($"Letzte Passwortänderung: {user.LetztePasswortaenderung}");
             sb.AppendLine($"Status: {user.Status}");
+            sb.AppendLine($"Kontooptionen: {user.Kontooptionen}");
             sb.AppendLine($"OU: {user.OU}");
+            sb.AppendLine($"Verbinden mit: {user.VerbindenMit}");
             sb.AppendLine($"Mitglied von: {user.MitgliedVon}");
 
             return sb.ToString();
@@ -74,9 +77,12 @@ namespace ADUserSearchTool.ViewHelpers
                 "Mobile" => user.Mobile,
                 "Logon Script" => user.LogonScript,
                 "Letzte Anmeldung" => user.LetzteAnmeldung,
+                "Letzte Passwortänderung" => user.LetztePasswortaenderung,
                 "Mitglied von" => user.MitgliedVon,
                 "Status" => user.Status,
+                "Kontooptionen" => user.Kontooptionen,
                 "OU" => user.OU,
+                "Verbinden mit" => user.VerbindenMit,
                 _ => ""
             };
         }

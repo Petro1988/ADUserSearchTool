@@ -22,9 +22,12 @@ namespace ADUserSearchTool.Services
                 "Mobile",
                 "Logon Script",
                 "Letzte Anmeldung",
+                "Letzte Passwortänderung",
                 "Mitglied von",
                 "Status",
-                "OU"
+                "Kontooptionen",
+                "OU",
+                "Verbinden mit"
             };
 
             for (int i = 0; i < headers.Length; i++)
@@ -44,9 +47,12 @@ namespace ADUserSearchTool.Services
                 worksheet.Cell(row, 5).Value = user.Mobile;
                 worksheet.Cell(row, 6).Value = user.LogonScript;
                 worksheet.Cell(row, 7).Value = user.LetzteAnmeldung;
-                worksheet.Cell(row, 8).Value = user.MitgliedVon;
-                worksheet.Cell(row, 9).Value = user.Status;
-                worksheet.Cell(row, 10).Value = user.OU;
+                worksheet.Cell(row, 8).Value = user.LetztePasswortaenderung;
+                worksheet.Cell(row, 9).Value = user.MitgliedVon;
+                worksheet.Cell(row, 10).Value = user.Status;
+                worksheet.Cell(row, 11).Value = user.Kontooptionen;
+                worksheet.Cell(row, 12).Value = user.OU;
+                worksheet.Cell(row, 14).Value = user.VerbindenMit;
 
                 row++;
             }
