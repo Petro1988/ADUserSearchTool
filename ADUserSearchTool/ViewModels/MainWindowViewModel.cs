@@ -1,19 +1,17 @@
 ﻿using ADUserSearchTool.Commands;
-using ADUserSearchTool.Constants;
+using ADUserSearchTool.Enums;
 using ADUserSearchTool.Exceptions;
 using ADUserSearchTool.Models;
 using ADUserSearchTool.Services;
 using ADUserSearchTool.ViewHelpers;
 using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace ADUserSearchTool.ViewModels
 {
-    public class MainWindowViewModel : INotifyPropertyChanged
+    public class MainWindowViewModel : ViewModelBase
     {
         private readonly IActiveDirectoryService activeDirectoryService;
         private readonly IExcelExportService excelExportService;
@@ -23,68 +21,54 @@ namespace ADUserSearchTool.ViewModels
         private readonly IClipboardTextService clipboardTextService;
 
         private string searchText = "";
-        private string selectedSearchMode = SearchModes.All;
-        private string selectedStatusFilter = StatusFilters.All;
+        private ComboBoxOption<SearchMode> selectedSearchMode;
+        private ComboBoxOption<UserStatusFilter> selectedStatusFilter;
         private string statusText = "Bereit.";
         private bool isBusy;
         private AdUserResult? selectedUser;
 
         public ObservableCollection<AdUserResult> Results { get; } = new ObservableCollection<AdUserResult>();
 
-        public string[] SearchModeItems { get; } =
-        {
-            SearchModes.All,
-            SearchModes.Phone,
-            SearchModes.LogonScript,
-            SearchModes.Ou,
-            SearchModes.Group
-        };
+        public ObservableCollection<ComboBoxOption<SearchMode>> SearchModeItems { get; } =
+            new ObservableCollection<ComboBoxOption<SearchMode>>
+            {
+                new ComboBoxOption<SearchMode>(SearchMode.All, "Alle"),
+                new ComboBoxOption<SearchMode>(SearchMode.Phone, "Rufnummer"),
+                new ComboBoxOption<SearchMode>(SearchMode.LogonScript, "Logon Script"),
+                new ComboBoxOption<SearchMode>(SearchMode.Ou, "OU"),
+                new ComboBoxOption<SearchMode>(SearchMode.Group, "Gruppe")
+            };
 
-        public string[] StatusFilterItems { get; } =
-        {
-            StatusFilters.All,
-            StatusFilters.Active,
-            StatusFilters.Disabled
-        };
+        public ObservableCollection<ComboBoxOption<UserStatusFilter>> StatusFilterItems { get; } =
+            new ObservableCollection<ComboBoxOption<UserStatusFilter>>
+            {
+                new ComboBoxOption<UserStatusFilter>(UserStatusFilter.All, "Alle"),
+                new ComboBoxOption<UserStatusFilter>(UserStatusFilter.Active, "Aktiv"),
+                new ComboBoxOption<UserStatusFilter>(UserStatusFilter.Disabled, "Deaktiviert")
+            };
 
         public string SearchText
         {
             get => searchText;
-            set
-            {
-                searchText = value;
-                OnPropertyChanged();
-            }
+            set => SetProperty(ref searchText, value);
         }
 
-        public string SelectedSearchMode
+        public ComboBoxOption<SearchMode> SelectedSearchMode
         {
             get => selectedSearchMode;
-            set
-            {
-                selectedSearchMode = value;
-                OnPropertyChanged();
-            }
+            set => SetProperty(ref selectedSearchMode, value);
         }
 
-        public string SelectedStatusFilter
+        public ComboBoxOption<UserStatusFilter> SelectedStatusFilter
         {
             get => selectedStatusFilter;
-            set
-            {
-                selectedStatusFilter = value;
-                OnPropertyChanged();
-            }
+            set => SetProperty(ref selectedStatusFilter, value);
         }
 
         public string StatusText
         {
             get => statusText;
-            set
-            {
-                statusText = value;
-                OnPropertyChanged();
-            }
+            set => SetProperty(ref statusText, value);
         }
 
         public bool IsBusy
@@ -92,10 +76,11 @@ namespace ADUserSearchTool.ViewModels
             get => isBusy;
             set
             {
-                isBusy = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(IsNotBusy));
-                RaiseCommandStates();
+                if (SetProperty(ref isBusy, value))
+                {
+                    OnPropertyChanged(nameof(IsNotBusy));
+                    RaiseCommandStates();
+                }
             }
         }
 
@@ -106,9 +91,10 @@ namespace ADUserSearchTool.ViewModels
             get => selectedUser;
             set
             {
-                selectedUser = value;
-                OnPropertyChanged();
-                RaiseCommandStates();
+                if (SetProperty(ref selectedUser, value))
+                {
+                    RaiseCommandStates();
+                }
             }
         }
 
@@ -137,6 +123,9 @@ namespace ADUserSearchTool.ViewModels
             this.dialogService = dialogService;
             this.clipboardTextService = clipboardTextService;
 
+            selectedSearchMode = SearchModeItems.First(x => x.Value == SearchMode.All);
+            selectedStatusFilter = StatusFilterItems.First(x => x.Value == UserStatusFilter.All);
+
             SearchCommand = new AsyncRelayCommand(SearchAsync, () => !IsBusy);
             ClearCommand = new RelayCommand(Clear, () => !IsBusy);
             ShowGroupsCommand = new RelayCommand(ShowGroups, () => !IsBusy && SelectedUser != null);
@@ -153,20 +142,23 @@ namespace ADUserSearchTool.ViewModels
                 Results.Clear();
                 SelectedUser = null;
 
-                string search = SearchText.Trim();
-                string mode = SelectedSearchMode;
-                string status = SelectedStatusFilter;
+                SearchRequest request = new SearchRequest(
+                    SearchText,
+                    SelectedSearchMode.Value,
+                    SelectedStatusFilter.Value);
 
-                if (mode == SearchModes.Group)
+                if (request.SearchMode == SearchMode.Group)
                 {
-                    if (string.IsNullOrWhiteSpace(search))
+                    if (string.IsNullOrWhiteSpace(request.SearchText))
                     {
                         StatusText = "Bitte Gruppennamen eingeben.";
                         return;
                     }
 
                     var groupResults = await Task.Run(() =>
-                        activeDirectoryService.SearchGroupMembers(search, status));
+                        activeDirectoryService.SearchGroupMembers(
+                            request.SearchText,
+                            request.StatusFilter));
 
                     SetResults(groupResults);
                     StatusText = $"{Results.Count} Gruppenmitglieder gefunden. Letzte Suche: {DateTime.Now:HH:mm:ss}";
@@ -174,16 +166,18 @@ namespace ADUserSearchTool.ViewModels
                 }
 
                 var userResults = await Task.Run(() =>
-                    activeDirectoryService.SearchUsers(search, status, mode));
+                    activeDirectoryService.SearchUsers(request));
 
                 if (userResults.Count == 0 &&
-                    !string.IsNullOrWhiteSpace(search) &&
-                    mode == SearchModes.All)
+                    !string.IsNullOrWhiteSpace(request.SearchText) &&
+                    request.SearchMode == SearchMode.All)
                 {
                     StatusText = "Keine Benutzer gefunden. Suche nach Gruppe...";
 
                     var groupResults = await Task.Run(() =>
-                        activeDirectoryService.SearchGroupMembers(search, status));
+                        activeDirectoryService.SearchGroupMembers(
+                            request.SearchText,
+                            request.StatusFilter));
 
                     SetResults(groupResults);
 
@@ -229,8 +223,8 @@ namespace ADUserSearchTool.ViewModels
         private void Clear()
         {
             SearchText = "";
-            SelectedSearchMode = SearchModes.All;
-            SelectedStatusFilter = StatusFilters.All;
+            SelectedSearchMode = SearchModeItems.First(x => x.Value == SearchMode.All);
+            SelectedStatusFilter = StatusFilterItems.First(x => x.Value == UserStatusFilter.All);
             Results.Clear();
             SelectedUser = null;
             StatusText = "Bereit.";
@@ -245,10 +239,10 @@ namespace ADUserSearchTool.ViewModels
                 return;
             }
 
-            ShowGroups(SelectedUser);
+            ShowGroupsForUser(SelectedUser);
         }
 
-        private void ShowGroups(AdUserResult user)
+        public void ShowGroupsForUser(AdUserResult user)
         {
             if (string.IsNullOrWhiteSpace(user.MitgliedVon))
             {
@@ -276,10 +270,10 @@ namespace ADUserSearchTool.ViewModels
                 return;
             }
 
-            CopySelectedRow(SelectedUser);
+            CopyUserRow(SelectedUser);
         }
 
-        private void CopySelectedRow(AdUserResult user)
+        public void CopyUserRow(AdUserResult user)
         {
             string text = DataGridClipboardHelper.BuildUserRowText(user);
             clipboardTextService.SetText(text);
@@ -319,23 +313,6 @@ namespace ADUserSearchTool.ViewModels
             ShowGroupsCommand.RaiseCanExecuteChanged();
             CopyRowCommand.RaiseCanExecuteChanged();
             ExportCommand.RaiseCanExecuteChanged();
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        public void ShowGroupsForUser(AdUserResult user)
-        {
-            ShowGroups(user);
-        }
-
-        public void CopyUserRow(AdUserResult user)
-        {
-            CopySelectedRow(user);
         }
     }
 }

@@ -1,31 +1,34 @@
-﻿using ADUserSearchTool.Constants;
+﻿using ADUserSearchTool.Enums;
 using ADUserSearchTool.Models;
 
 namespace ADUserSearchTool.Helpers
 {
     public static class AdSearchMatcher
     {
-        public static bool Matches(AdUserResult user, string searchText, string searchMode)
+        public static bool Matches(AdUserResult user, SearchRequest request)
         {
-            if (string.IsNullOrWhiteSpace(searchText))
+            if (string.IsNullOrWhiteSpace(request.SearchText))
                 return true;
 
-            string search = searchText.Trim();
-            string searchDigits = AdHelper.NormalizeNumber(searchText);
+            string search = request.SearchText.Trim();
+            string searchDigits = AdHelper.NormalizeNumber(request.SearchText);
 
-            switch (searchMode)
+            switch (request.SearchMode)
             {
-                case SearchModes.Phone:
+                case SearchMode.Phone:
                     return MatchesPhone(user, searchDigits);
 
-                case SearchModes.LogonScript:
+                case SearchMode.LogonScript:
                     return AdHelper.ContainsIgnoreCase(user.LogonScript, search);
 
-                case SearchModes.Ou:
+                case SearchMode.Ou:
                     return AdHelper.ContainsIgnoreCase(user.OU, search) ||
                            AdHelper.ContainsIgnoreCase(user.DistinguishedName, search);
 
-                case SearchModes.All:
+                case SearchMode.Group:
+                    return false;
+
+                case SearchMode.All:
                 default:
                     bool textMatch =
                         AdHelper.ContainsIgnoreCase(user.Name, search) ||

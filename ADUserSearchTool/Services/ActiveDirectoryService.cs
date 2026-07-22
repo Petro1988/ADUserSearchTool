@@ -7,13 +7,14 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using ADUserSearchTool.Constants;
 using ADUserSearchTool.Exceptions;
+using ADUserSearchTool.Enums;
 
 namespace ADUserSearchTool.Services
 {
 
     public class ActiveDirectoryService: IActiveDirectoryService
     {
-        public List<AdUserResult> SearchUsers(string searchText, string statusFilter, string searchMode)
+        public List<AdUserResult> SearchUsers(SearchRequest request)
         {
             List<AdUserResult> results = new List<AdUserResult>();
 
@@ -33,10 +34,10 @@ namespace ADUserSearchTool.Services
             {
                 AdUserResult user = MapUser(result);
 
-                if (!MatchesStatusFilter(user, statusFilter))
+                if (!MatchesStatusFilter(user, request.StatusFilter))
                     continue;
 
-                if (!AdSearchMatcher.Matches(user, searchText, searchMode))
+                if (!AdSearchMatcher.Matches(user, request))
                     continue;
 
                 results.Add(user);
@@ -47,7 +48,7 @@ namespace ADUserSearchTool.Services
                 .ToList();
         }
 
-        public List<AdUserResult> SearchGroupMembers(string groupSearchText, string statusFilter)
+        public List<AdUserResult> SearchGroupMembers(string groupSearchText, UserStatusFilter statusFilter)
         {
             List<AdUserResult> members = new List<AdUserResult>();
 
@@ -252,13 +253,13 @@ namespace ADUserSearchTool.Services
             };
         }
 
-        private bool MatchesStatusFilter(AdUserResult user, string statusFilter)
+        private bool MatchesStatusFilter(AdUserResult user, UserStatusFilter statusFilter)
         {
-            if (statusFilter == StatusFilters.Active)
-                return user.Status == StatusFilters.Active;
+            if (statusFilter == UserStatusFilter.Active)
+                return user.Status == "Aktiv";
 
-            if (statusFilter == StatusFilters.Disabled)
-                return user.Status == StatusFilters.Disabled;
+            if (statusFilter == UserStatusFilter.Disabled)
+                return user.Status == "Deaktiviert";
 
             return true;
         }
