@@ -10,32 +10,41 @@ namespace ADUserSearchTool.ViewHelpers
     {
         public static string BuildSelectedCellsText(DataGrid dataGrid)
         {
-            List<DataGridCellInfo> selectedCells = dataGrid.SelectedCells
+            List<SelectedCellValue> selectedCells = dataGrid.SelectedCells
                 .Where(cell => cell.Item is AdUserResult)
                 .OrderBy(cell => cell.Column.DisplayIndex)
+                .Select(cell =>
+                {
+                    AdUserResult user = (AdUserResult)cell.Item;
+                    string header = cell.Column.Header?.ToString() ?? "";
+
+                    return new SelectedCellValue(user, header);
+                })
                 .ToList();
 
-            if (selectedCells.Count == 0)
+            return BuildSelectedCellsText(selectedCells);
+        }
+
+        public static string BuildSelectedCellsText(IEnumerable<SelectedCellValue> selectedCells)
+        {
+            List<SelectedCellValue> cells = selectedCells.ToList();
+
+            if (cells.Count == 0)
                 return "";
 
             StringBuilder sb = new StringBuilder();
 
-            var rowGroups = selectedCells
-                .GroupBy(cell => cell.Item)
+            var rowGroups = cells
+                .GroupBy(cell => cell.User)
                 .ToList();
 
             foreach (var rowGroup in rowGroups)
             {
-                if (rowGroup.Key is not AdUserResult user)
-                    continue;
-
                 List<string> values = new List<string>();
 
-                foreach (DataGridCellInfo cell in rowGroup.OrderBy(cell => cell.Column.DisplayIndex))
+                foreach (SelectedCellValue cell in rowGroup)
                 {
-                    string header = cell.Column.Header?.ToString() ?? "";
-                    string value = GetUserValueByHeader(user, header);
-
+                    string value = GetUserValueByHeader(cell.User, cell.Header);
                     values.Add(value);
                 }
 
@@ -85,6 +94,19 @@ namespace ADUserSearchTool.ViewHelpers
                 "Verbinden mit" => user.VerbindenMit,
                 _ => ""
             };
+        }
+    }
+
+    public class SelectedCellValue
+    {
+        public AdUserResult User { get; }
+
+        public string Header { get; }
+
+        public SelectedCellValue(AdUserResult user, string header)
+        {
+            User = user;
+            Header = header;
         }
     }
 }

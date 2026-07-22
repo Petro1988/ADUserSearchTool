@@ -52,7 +52,7 @@ namespace ADUserSearchTool.Services
                 worksheet.Cell(row, 10).Value = user.Status;
                 worksheet.Cell(row, 11).Value = user.Kontooptionen;
                 worksheet.Cell(row, 12).Value = user.OU;
-                worksheet.Cell(row, 14).Value = user.VerbindenMit;
+                worksheet.Cell(row, 13).Value = user.VerbindenMit;
 
                 row++;
             }
